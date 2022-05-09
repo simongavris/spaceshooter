@@ -1,0 +1,143 @@
+[gd_scene load_steps=10 format=2]
+
+[ext_resource path="res://Player.tscn" type="PackedScene" id=1]
+[ext_resource path="res://ScoreLabel.gd" type="Script" id=2]
+[ext_resource path="res://Game.gd" type="Script" id=3]
+[ext_resource path="res://LevelLabel.gd" type="Script" id=4]
+[ext_resource path="res://assets/button_move.png" type="Texture" id=5]
+[ext_resource path="res://TouchButtons.gd" type="Script" id=6]
+
+[sub_resource type="GDScript" id=4]
+script/source = "extends Area2D
+
+var loadAsteroid = preload(\"res://Asteroid.tscn\")
+var loadPowerupShield = preload(\"res://PowerupShield.tscn\")
+var loadPowerupSpeed = preload(\"res://PowerupSpeed.tscn\")
+var loadPowerupSize = preload(\"res://PowerupSize.tscn\")
+
+onready var asteroidTimer = get_node(\"AsteroidTimer\")
+onready var powerupTimer = get_node(\"PowerUpTimer\")
+
+onready var game = get_parent()
+var rng = RandomNumberGenerator.new()
+
+
+var level : int = 1
+
+func _ready():
+	asteroidTimer.start()
+	asteroidTimer.wait_time = 0.7
+	spawn_asteroid(1)
+	powerupTimer.start()
+	powerupTimer.wait_time = 2.5
+
+func spawn_asteroid(spawnrate):
+	for a in range(spawnrate):
+		var asteroid = loadAsteroid.instance()
+		add_child(asteroid)
+		
+func _on_AsteroidTimer_timeout():
+	level = 1+int(game.global_score/50)
+	spawn_asteroid(level)
+	asteroidTimer.start()
+
+func _on_PowerUpTimer_timeout():
+	rng.randomize()
+	var powerup = rng.randi_range(1, level)
+	print_debug(powerup)
+	if powerup == 2:
+		add_child(loadPowerupShield.instance())
+	elif powerup == 3:
+		add_child(loadPowerupSpeed.instance())
+	elif powerup == 4:
+		add_child(loadPowerupSize.instance())
+	powerupTimer.start()
+	
+func count_exit(value):
+	game.global_score += value
+	game.global_level = level
+"
+
+[sub_resource type="RectangleShape2D" id=3]
+extents = Vector2( 64, 112 )
+
+[sub_resource type="SegmentShape2D" id=5]
+a = Vector2( 0, -192 )
+b = Vector2( 0, 32 )
+
+[node name="Game" type="Node2D"]
+script = ExtResource( 3 )
+__meta__ = {
+"_edit_horizontal_guides_": [ 192.0, 112.0 ],
+"_edit_vertical_guides_": [ 64.0, 192.0, 128.0, 192.0 ]
+}
+
+[node name="Player" parent="." instance=ExtResource( 1 )]
+position = Vector2( 64, 192 )
+
+[node name="Game_Area" type="Area2D" parent="."]
+script = SubResource( 4 )
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Game_Area"]
+position = Vector2( 64, 112 )
+shape = SubResource( 3 )
+
+[node name="borderLeft" type="StaticBody2D" parent="Game_Area"]
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="Game_Area/borderLeft"]
+position = Vector2( 0, 192 )
+shape = SubResource( 5 )
+
+[node name="borderRight" type="StaticBody2D" parent="Game_Area"]
+position = Vector2( 128, 0 )
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="Game_Area/borderRight"]
+position = Vector2( 0, 192 )
+shape = SubResource( 5 )
+
+[node name="AsteroidTimer" type="Timer" parent="Game_Area"]
+wait_time = 0.5
+autostart = true
+
+[node name="PowerUpTimer" type="Timer" parent="Game_Area"]
+
+[node name="ScoreLabel" type="Label" parent="."]
+margin_left = 72.0
+margin_right = 127.0
+margin_bottom = 14.0
+text = "SCORE"
+align = 2
+script = ExtResource( 2 )
+
+[node name="LevelLabel" type="Label" parent="."]
+margin_right = 40.0
+margin_bottom = 14.0
+text = "LEVEL"
+script = ExtResource( 4 )
+
+[node name="TouchButtons" type="Node2D" parent="."]
+script = ExtResource( 6 )
+
+[node name="LeftButton" type="TouchScreenButton" parent="TouchButtons"]
+position = Vector2( 8, 200 )
+normal = ExtResource( 5 )
+
+[node name="LeftButton2" type="TouchScreenButton" parent="TouchButtons"]
+position = Vector2( 8, 200 )
+normal = ExtResource( 5 )
+
+[node name="RightButton" type="TouchScreenButton" parent="TouchButtons"]
+position = Vector2( 120, 216 )
+rotation = -3.14159
+normal = ExtResource( 5 )
+
+[connection signal="ready" from="." to="." method="_on_Game_ready"]
+[connection signal="area_exited" from="Game_Area" to="Game_Area" method="_on_Game_Area_area_exited"]
+[connection signal="timeout" from="Game_Area/AsteroidTimer" to="Game_Area" method="_on_AsteroidTimer_timeout"]
+[connection signal="timeout" from="Game_Area/PowerUpTimer" to="Game_Area" method="_on_PowerUpTimer_timeout"]
+[connection signal="pressed" from="TouchButtons/LeftButton" to="TouchButtons" method="_on_LeftButton_pressed"]
+[connection signal="released" from="TouchButtons/LeftButton" to="TouchButtons" method="_on_LeftButton_released"]
+[connection signal="pressed" from="TouchButtons/LeftButton2" to="TouchButtons" method="_on_LeftButton_pressed"]
+[connection signal="released" from="TouchButtons/LeftButton2" to="TouchButtons" method="_on_LeftButton_released"]
+[connection signal="pressed" from="TouchButtons/RightButton" to="TouchButtons" method="_on_RightButton_pressed"]
+[connection signal="released" from="TouchButtons/RightButton" to="TouchButtons" method="_on_RightButton_released"]
